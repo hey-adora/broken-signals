@@ -1,63 +1,74 @@
 use leptos::*;
 use leptos_meta::*;
-use leptos_router::*;
+
+fn resize(imgs: &[(usize, RwSignal<usize>)]) {
+    for img in imgs {
+        img.1.update(|i| *i += 1);
+    }
+}
 
 #[component]
 pub fn App() -> impl IntoView {
-    // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
+    provide_context(RwSignal::new(vec![(0usize, RwSignal::new(0usize))]));
+    let global_imgs = use_context::<RwSignal<Vec<(usize, RwSignal<usize>)>>>().unwrap();
+    let received_imgs = RwSignal::new(0usize);
+
+    // let resize = |imgs: &[(usize, RwSignal<usize>)]| {
+    //     crate::app::resize(imgs);
+    // };
+
+    create_effect(move |_| {
+        received_imgs.with(move |received_imgs| {
+            let mut new_imgs: Vec<(usize, RwSignal<usize>)> = Vec::new();
+            let len = global_imgs.with(|i| i.len());
+            for i in len..len + received_imgs {
+                new_imgs.push((i, RwSignal::new(len)))
+            }
+            global_imgs.update(move |imgs| {
+                imgs.extend(new_imgs);
+                resize(imgs);
+            });
+        });
+    });
+
+    let on_add = move |_| {
+        received_imgs.set(25);
+        // global_imgs.update(|imgs| {
+        //     // let len = imgs.len();
+        //     // let mut new_imgs: Vec<(usize, RwSignal<usize>)> = Vec::new();
+        //     // for i in len..len + 100 {
+        //     //     new_imgs.push((i, RwSignal::new(len)))
+        //     // }
+        //     // imgs.extend_from_slice(&new_imgs);
+        //     // resize(imgs);
+        //     // for img in imgs {
+        //     //     img.1.update(|i| *i += 1);
+        //     // }
+        // })
+    };
+    let on_inc = move |_| {
+        global_imgs.with(|imgs| {
+            resize(imgs);
+            // for img in imgs {
+            //     img.1.update(|i| *i += 1);
+            // }
+        })
+    };
 
     view! {
-        // injects a stylesheet into the document <head>
-        // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/leptos_start.css"/>
-
-        // sets the document title
-        <Title text="Welcome to Leptos"/>
-
-        // content for this welcome page
-        <Router>
-            <main>
-                <Routes>
-                    <Route path="" view=HomePage/>
-                    <Route path="/*any" view=NotFound/>
-                </Routes>
-            </main>
-        </Router>
-    }
-}
-
-/// Renders the home page of your application.
-#[component]
-fn HomePage() -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
-
-    view! {
-        <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
-    }
-}
-
-/// 404 - Not Found
-#[component]
-fn NotFound() -> impl IntoView {
-    // set an HTTP status code 404
-    // this is feature gated because it can only be done during
-    // initial server-side rendering
-    // if you navigate to the 404 page subsequently, the status
-    // code will not be set because there is not a new HTTP request
-    // to the server
-    #[cfg(feature = "ssr")]
-    {
-        // this can be done inline because it's synchronous
-        // if it were async, we'd use a server function
-        let resp = expect_context::<leptos_actix::ResponseOptions>();
-        resp.set_status(actix_web::http::StatusCode::NOT_FOUND);
-    }
-
-    view! {
-        <h1>"Not Found"</h1>
+        <button on:click=on_add>"ADD"</button>
+        <button on:click=on_inc>"INCREMENT"</button>
+        <ul>
+            <For each=global_imgs key=|img|img.0 let:img>
+                <li>{
+                    let a = img.1;
+                    view!{
+                        <span>{move || a.get()}</span>
+                    }
+                }</li>
+            </For>
+        </ul>
     }
 }
