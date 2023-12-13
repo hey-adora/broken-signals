@@ -14,10 +14,6 @@ pub fn App() -> impl IntoView {
     let global_imgs = use_context::<RwSignal<Vec<(usize, RwSignal<usize>)>>>().unwrap();
     let received_imgs = RwSignal::new(0usize);
 
-    // let resize = |imgs: &[(usize, RwSignal<usize>)]| {
-    //     crate::app::resize(imgs);
-    // };
-
     create_effect(move |_| {
         received_imgs.with(move |received_imgs| {
             let mut new_imgs: Vec<(usize, RwSignal<usize>)> = Vec::new();
@@ -34,25 +30,10 @@ pub fn App() -> impl IntoView {
 
     let on_add = move |_| {
         received_imgs.set(25);
-        // global_imgs.update(|imgs| {
-        //     // let len = imgs.len();
-        //     // let mut new_imgs: Vec<(usize, RwSignal<usize>)> = Vec::new();
-        //     // for i in len..len + 100 {
-        //     //     new_imgs.push((i, RwSignal::new(len)))
-        //     // }
-        //     // imgs.extend_from_slice(&new_imgs);
-        //     // resize(imgs);
-        //     // for img in imgs {
-        //     //     img.1.update(|i| *i += 1);
-        //     // }
-        // })
     };
     let on_inc = move |_| {
         global_imgs.with(|imgs| {
             resize(imgs);
-            // for img in imgs {
-            //     img.1.update(|i| *i += 1);
-            // }
         })
     };
 
